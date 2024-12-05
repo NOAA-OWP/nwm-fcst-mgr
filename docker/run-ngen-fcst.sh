@@ -15,14 +15,17 @@ umask -S
 
 # Function to display help message
 show_help() {
-  echo "Usage: $(basename "$0") \<forcing_file\> \<config_file\> \<job_name\>"
+  echo "Usage: $(basename "$0") <forcing_file> <config_file> <job_name> [output_path] [venv_path]"
   echo ""
-  echo "forcing_file: Path to the NetCDF forcing file."
-  echo "config_file: Path to the config yaml file for a validation run (from ngen-cal)."
-  echo "job_name: Path to the folder to be created for storing inputs/outputs from running ngen."
+  echo "FORCING_FILE: Path to the NetCDF forcing file."
+  echo "CONFIG_FILE: Path to the config yaml file for a validation run (from ngen-cal)."
+  echo "JOB_NAME: Path to the folder to be created for storing inputs/outputs from running ngen."
+  echo "OUTPUT_FILE (optional): Path to the output file where the script's output will be saved.  Used when running in LOCAL or DOCKER environment"
+  echo "VENV_PATH (optional): Path to the Python virtual environment.  Used when running in the LOCAL environment."
   echo ""
-  echo "Example:"
+  echo "Examples:"
   echo "  $(basename "$0") test_data/forcing.nc test_data/valid_config.yaml fcst_run1"
+  echo "  $(basename "$0") test_data/forcing.nc test_data/valid_config.yaml fcst_run1 /path/to/output/ngen-fcst.log /path/to/venv"
   echo ""
   exit 1
 }
@@ -47,6 +50,7 @@ fi
 FORCING_FILE=$1
 CONFIG_FILE=$2
 JOB_NAME=$3
+shift $REQUIRED_ARGS
 
 echo "DEBUG: FORCING_FILE: ${FORCING_FILE}"
 echo "DEBUG: CONFIG_FILE: ${CONFIG_FILE}"
@@ -62,53 +66,57 @@ if [ ! -f "${CONFIG_FILE}" ]; then
   echo "WARN: Configuration file not found at ${CONFIG_FILE}"
 fi
 
-# if [ $# -ge 1 ]; then
-#   PYTHON_OUTPUT_FILE=$1
-#   echo "       Output file: $PYTHON_OUTPUT_FILE"
+if [ $# -ge 1 ]; then
+  PYTHON_OUTPUT_FILE=$1
+  echo "DEBUG: Output file: $PYTHON_OUTPUT_FILE"
 
-#   # Create output directory if it doesn't exist
-#   OUTPUT_DIR=$(dirname "$PYTHON_OUTPUT_FILE")
-#   if [ ! -d "$OUTPUT_DIR" ]; then
-#     mkdir -p "$OUTPUT_DIR"
-#   fi
+  # Create output directory if it doesn't exist
+  OUTPUT_DIR=$(dirname "$PYTHON_OUTPUT_FILE")
+  if [ ! -d "$OUTPUT_DIR" ]; then
+    mkdir --parents "$OUTPUT_DIR"
+  fi
 
-#   shift 1
-# fi
+  shift 1
+fi
 
-# if [ $# -ge 1 ]; then
-#   VENV_PATH=$1
-#   echo "Virtual environment: $VENV_PATH"
-#   shift 1
-# fi
+if [ $# -ge 1 ]; then
+  VENV_PATH=$1
+  echo "DEBUG: Virtual environment: $VENV_PATH"
+  shift 1
+fi
 
 # Activate the virtual environment if provided
-# if [ -n "$VENV_PATH" ]; then
-#   if [ -d "$VENV_PATH/bin" ]; then
-#     source "$VENV_PATH/bin/activate"
-#   else
-#     echo "Error: Virtual environment path '$VENV_PATH' is invalid."
-#     exit 1
-#   fi
-# else
-#   echo "No virtual environment provided, running with default Python environment."
-# fi
+if [ -n "$VENV_PATH" ]; then
+  if [ -d "$VENV_PATH/bin" ]; then
+    source "$VENV_PATH/bin/activate"
+  else
+    echo "Error: Virtual environment path '$VENV_PATH' is invalid."
+    exit 1
+  fi
+else
+  echo "No virtual environment provided, running with default Python environment."
+fi
 
 # Run the Python script, redirecting its output if an output file is provided
 echo "   Running $(basename "$SCRIPT_PATH") with input file: $CONFIG_FILE"
-python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${JOB_NAME}"
+if [ -z "$PYTHON_OUTPUT_FILE" ]; then
+  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${JOB_NAME}"
+else
+  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${JOB_NAME}" &> "${PYTHON_OUTPUT_FILE}" 
+fi
 
 python_exit_code=$?
 if [ $python_exit_code -ne 0 ]; then
   echo "$(basename "$SCRIPT_PATH") exited with code $python_exit_code"
 fi
 
-# Display output if redirected to a file
-# if [ -n "$PYTHON_OUTPUT_FILE" ]; then
-#   echo "Output from running $(basename "$SCRIPT_PATH")"
-#   echo "-------------- start of $PYTHON_OUTPUT_FILE -----------------------------"
-#   cat "$PYTHON_OUTPUT_FILE"
-#   echo "---------------- end of $PYTHON_OUTPUT_FILE -----------------------------"
-# fi
+Display output if redirected to a file
+if [ -n "$PYTHON_OUTPUT_FILE" ]; then
+  echo "Output from running $(basename "$SCRIPT_PATH")"
+  echo "-------------- start of $PYTHON_OUTPUT_FILE -----------------------------"
+  cat "$PYTHON_OUTPUT_FILE"
+  echo "---------------- end of $PYTHON_OUTPUT_FILE -----------------------------"
+fi
 
 echo "Done running $(basename "$SCRIPT_PATH")"
 
