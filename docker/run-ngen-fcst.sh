@@ -52,23 +52,23 @@ CONFIG_FILE=$2
 JOB_NAME=$3
 shift $REQUIRED_ARGS
 
-echo "DEBUG: FORCING_FILE: ${FORCING_FILE}"
-echo "DEBUG: CONFIG_FILE: ${CONFIG_FILE}"
-echo "DEBUG: JOB_NAME: ${JOB_NAME}"
+echo "FORCING_FILE: ${FORCING_FILE}"
+echo "CONFIG_FILE: ${CONFIG_FILE}"
+echo "JOB_NAME: ${JOB_NAME}"
 
 # Check if the forcing data exists
 if [ ! -f "${FORCING_FILE}" ]; then
-  echo "WARN: Forcing data not found at ${FORCING_FILE}"
+  echo "Forcing data not found at ${FORCING_FILE}"
 fi
 
 # Check if the configuration file exists
 if [ ! -f "${CONFIG_FILE}" ]; then
-  echo "WARN: Configuration file not found at ${CONFIG_FILE}"
+  echo "Configuration file not found at ${CONFIG_FILE}"
 fi
 
 if [ $# -ge 1 ]; then
   PYTHON_OUTPUT_FILE=$1
-  echo "DEBUG: Output file: $PYTHON_OUTPUT_FILE"
+  echo "Output file: $PYTHON_OUTPUT_FILE"
 
   # Create output directory if it doesn't exist
   OUTPUT_DIR=$(dirname "$PYTHON_OUTPUT_FILE")
@@ -81,7 +81,7 @@ fi
 
 if [ $# -ge 1 ]; then
   VENV_PATH=$1
-  echo "DEBUG: Virtual environment: $VENV_PATH"
+  echo "Virtual environment: $VENV_PATH"
   shift 1
 fi
 
