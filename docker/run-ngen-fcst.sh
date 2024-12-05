@@ -1,17 +1,16 @@
 #!/bin/bash
 
-# This shell script lives in the ngen-cal.  It is used by CerfServer when calling ngen-cal
-
+# Run script for run_ngen_fcst.py
+#
 # It is used by CerfServer directly when running in LOCAL mode.
-# It is used by the ngen-cal docker container when the server is running in DOCKER or PARALLEL_WORKS mode.
+# It is used by the ngen-cal docker container when the server is running in DOCKER
+# or PARALLEL_WORKS mode.
 
 REQUIRED_ARGS=3
 SCRIPT_PATH=/ngen-app/ngen-fcst/python/run_ngen_fcst.py
 
 # Set the umask so files and directories are created with 777 permissions
-echo Setting umask
 umask 000
-umask -S
 
 # Function to display help message
 show_help() {
