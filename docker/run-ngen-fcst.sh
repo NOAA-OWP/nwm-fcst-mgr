@@ -14,12 +14,12 @@ umask 000
 
 # Function to display help message
 show_help() {
-  echo "Usage: $(basename "$0") <forcing_file> <config_file> <job_name> [output_path] [venv_path]"
+  echo "Usage: $(basename "$0") <forcing_file> <config_file> <output_dir> [log_file] [venv_path]"
   echo ""
   echo "FORCING_FILE: Path to the NetCDF forcing file."
   echo "CONFIG_FILE: Path to the config yaml file for a validation run (from ngen-cal)."
-  echo "JOB_NAME: Path to the folder to be created for storing inputs/outputs from running ngen."
-  echo "OUTPUT_FILE (optional): Path to the output file where the script's output will be saved.  Used when running in LOCAL or DOCKER environment"
+  echo "OUTPUT_DIR: Path to the folder to be created for storing inputs/outputs from running ngen."
+  echo "LOG_FILE (optional): Path to the output file where the script's console output will be saved.  Used when running in LOCAL or DOCKER environment"
   echo "VENV_PATH (optional): Path to the Python virtual environment.  Used when running in the LOCAL environment."
   echo ""
   echo "Examples:"
@@ -48,12 +48,12 @@ fi
 
 FORCING_FILE=$1
 CONFIG_FILE=$2
-JOB_NAME=$3
+OUTPUT_DIR=$3
 shift $REQUIRED_ARGS
 
 echo "FORCING_FILE: ${FORCING_FILE}"
 echo "CONFIG_FILE: ${CONFIG_FILE}"
-echo "JOB_NAME: ${JOB_NAME}"
+echo "OUTPUT_DIR: ${OUTPUT_DIR}"
 
 # Check if the forcing data exists
 if [ ! -f "${FORCING_FILE}" ]; then
@@ -70,9 +70,9 @@ if [ $# -ge 1 ]; then
   echo "Output file: $PYTHON_OUTPUT_FILE"
 
   # Create output directory if it doesn't exist
-  OUTPUT_DIR=$(dirname "$PYTHON_OUTPUT_FILE")
-  if [ ! -d "$OUTPUT_DIR" ]; then
-    mkdir --parents "$OUTPUT_DIR"
+  LOG_DIR=$(dirname "$PYTHON_OUTPUT_FILE")
+  if [ ! -d "$LOG_DIR" ]; then
+    mkdir --parents "$LOG_DIR"
   fi
 
   shift 1
@@ -99,9 +99,9 @@ fi
 # Run the Python script, redirecting its output if an output file is provided
 echo "   Running $(basename "$SCRIPT_PATH") with input file: $CONFIG_FILE"
 if [ -z "$PYTHON_OUTPUT_FILE" ]; then
-  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${JOB_NAME}"
+  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${OUTPUT_DIR}"
 else
-  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${JOB_NAME}" &> "${PYTHON_OUTPUT_FILE}" 
+  python "${SCRIPT_PATH}" "${FORCING_FILE}" "${CONFIG_FILE}" "${OUTPUT_DIR}" &> "${PYTHON_OUTPUT_FILE}" 
 fi
 
 python_exit_code=$?

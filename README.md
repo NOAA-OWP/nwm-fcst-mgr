@@ -77,12 +77,12 @@ docker run ngen-fcst
 
 This will print a usage statement for the container:
 ```
-Usage: run-ngen-fcst.sh <forcing_file> <config_file> <job_name> [output_path] [venv_path]
+Usage: run-ngen-fcst.sh <forcing_file> <config_file> <output_path> [log_file] [venv_path]
 
 FORCING_FILE: Path to the NetCDF forcing file.
 CONFIG_FILE: Path to the config yaml file for a validation run (from ngen-cal).
-JOB_NAME: Path to the folder to be created for storing inputs/outputs from running ngen.
-OUTPUT_FILE (optional): Path to the output file where the script's output will be saved.  Used when running in LOCAL or DOCKER environment
+OUTPUT_PATH: Path to the folder to be created for storing inputs/outputs from running ngen.
+LOG_FILE (optional): Path to the output file where the script's output will be saved.  Used when running in LOCAL or DOCKER environment
 VENV_PATH (optional): Path to the Python virtual environment.  Used when running in the LOCAL environment.
 
 Examples:
