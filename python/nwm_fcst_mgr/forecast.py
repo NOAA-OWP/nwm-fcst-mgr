@@ -18,7 +18,6 @@ from nwm_fcst_mgr.git_util import print_git_info_all
 from mswm.manager import build_fcst
 
 # setup the logger
-log_level_set()
 logger = logging.getLogger(__name__)
 
 
@@ -200,8 +199,10 @@ def read_troute_output(
 
     return output
 
-def fcst_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start):
-    # Run forecast workflow with optional cold start
+def fcst_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=False):
+    """
+    Run forecast workflow with optional cold start run
+    """
     # Generate msw-mgr inputs for cold start run
     if use_cold_start:
         cold_start_real_path  = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
@@ -217,9 +218,8 @@ def fcst_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start):
     # Run forecast
     run_fcst(valid_yaml, fcst_real_path)
 
-def hindcast_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=False,
-                      cycle_interval=None, num_intervals=None):
-    """"
+def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num_intervals, use_cold_start=False):
+    """
     Run hindcast workflow with optional cold start and intermediate ana runs
     Accepts cycle interval and number of intervals for repeated hindcasts
     """
@@ -258,24 +258,46 @@ def hindcast_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=Fals
 
 def parse_args():
     # Create command line parser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="nwm-fcst-mgr",
+                                     description="Forecast Manager command-line")
+    subparser = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
-    # Add arguments
-    parser.add_argument('input_path', str, help('Path to input.config file for forecast'))
-    parser.add_argument('valid_yaml', type=str, help=('Path to validation yaml file from previous run of nwm-cal-mgr'))
-    parser.add_argument("fcst_run_name", help="Name of the folder to be created for storing inputs/outputs from running ngen")
-    parser.add_argument("--use_cold_start", action="store_true", help="Enable cold start flag when passed")
-    parser.add_argument("--cycle_interval", type=int, default=None, help="Cycle interval (in hours) between hindcast runs")
-    parser.add_argument("--num_intervals", type=int, default=None, help="Number of hindcast cycles to perform")
+    # Define parent parser for shared arguments
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser.add_argument('input_path', type=str, help='Path to input.config file for forecast')
+    parent_parser.add_argument('valid_yaml', type=str, help='Path to validation yaml file from previous run of nwm-cal-mgr')
+    parent_parser.add_argument("fcst_run_name", help="Name of the folder to be created for storing inputs/outputs from running ngen")
+    parent_parser.add_argument("--use_cold_start", action="store_true", help="Enable cold start flag when passed")
+
+    # subcommand: fcst_workflow
+    fcst_workflow_sub = subparser.add_parser("fcst_workflow", parents=[parent_parser], help="Run forecast workflow")
+
+    # Subcommand: hindcast_workflow
+    hindcast_workflow_sub = subparser.add_parser("hindcast_workflow", parents=[parent_parser], help="Run forecast workflow")
+    hindcast_workflow_sub.add_argument("cycle_interval", type=int, help="Cycle interval (in hours) between hindcast runs")
+    hindcast_workflow_sub.add_argument("num_intervals", type=int, help="Number of hindcast cycles to perform")
 
     return parser.parse_args()
 
 
 def main():
+
+    # Initialize logging explicitly for CLI entrypoint
+    log_level_set()
+
+    # Retrieve CLI args
     args = parse_args()
-    fcst_workflow(input_path=args.input_path, valid_yaml=args.valid_yaml,
-                  fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start,
-                  cycle_interval=args.cycle_interval, num_intervals=args.num_intervals)
+
+    # Run fcst/hindcast workflows
+    if args.command == "fcst_workflow":
+        fcst_workflow(input_path=args.input_path, valid_yaml=args.valid_yaml,
+                    fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start)
+    if args.command == "hindcast_workflow":
+        hindcast_workflow(input_path=args.input_path, valid_yaml=args.valid_yaml,
+                          fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start,
+                          cycle_interval=args.cycle_interval, num_intervals=args.num_intervals)
+    else:
+        raise ValueError(f"Unexpected command: {args.command}. Use either 'fcst_workflow' or 'hindcast_workflow'.")
 
 
 if __name__ == "__main__":
