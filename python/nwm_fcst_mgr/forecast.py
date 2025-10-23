@@ -217,26 +217,44 @@ def fcst_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start):
     # Run forecast
     run_fcst(valid_yaml, fcst_real_path)
 
-def hindcast_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=False, use_int_ana=False,
-                      cycle_interval=None, num_intervals=None)
+def hindcast_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=False,
+                      cycle_interval=None, num_intervals=None):
     """"
     Run hindcast workflow with optional cold start and intermediate ana runs
     Accepts cycle interval and number of intervals for repeated hindcasts
     """
     # Generate msw-mgr inputs for cold start run
     if use_cold_start:
+
+        # Create cold start input files
         cold_start_real_path = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
                                           fcst_run_name=fcst_run_name, use_cold_start=True)
-
-        # Run cold start
-        run_fcst(valid_yaml, cold_start_real_path)
-
-    if use_int_ana:
-        int_ana_real_path = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
-                                       fcst_run_name=fcst_run_name, use_int_ana=True)
         
-        # Run intermediate ana to generate hindcasting model states
-        run_fcst(valid_yaml, int_ana_real_path)
+        # # Run cold start
+        # run_fcst(valid_yaml, cold_start_real_path)
+
+    # Generate hindcast interval times in hours
+    hind_interval = list(range(0, num_intervals, cycle_interval))
+
+    # Loop through hindcast intervals
+    for hind_cycle in hind_interval:
+
+        # Format run name for hindcast cycle
+        hind_run_name = fcst_run_name + '_' + str(hind_cycle)
+
+        # Create intermediate ana input files
+        int_ana_real_path = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
+                                       fcst_run_name=hind_run_name, use_int_ana=True, hind_cycle=hind_cycle)
+        
+        # # Run intermediate ana to generate hindcasting model states
+        # run_fcst(valid_yaml, int_ana_real_path)
+
+        # Create hindcast input files
+        hind_real_path = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
+                                    fcst_run_name=hind_run_name, use_hindcast=True, hind_cycle=hind_cycle)
+        # # Run hindcasting period
+        # run_fcst(valid_yaml, hind_real_path)
+
 
 def parse_args():
     # Create command line parser
@@ -247,7 +265,8 @@ def parse_args():
     parser.add_argument('valid_yaml', type=str, help=('Path to validation yaml file from previous run of nwm-cal-mgr'))
     parser.add_argument("fcst_run_name", help="Name of the folder to be created for storing inputs/outputs from running ngen")
     parser.add_argument("--use_cold_start", action="store_true", help="Enable cold start flag when passed")
-    parser.add_argument("--use_int_ana", action="store_true", help="Enable intermediate ana flag when passed")
+    parser.add_argument("--cycle_interval", type=int, default=None, help="Cycle interval (in hours) between hindcast runs")
+    parser.add_argument("--num_intervals", type=int, default=None, help="Number of hindcast cycles to perform")
 
     return parser.parse_args()
 
@@ -255,7 +274,8 @@ def parse_args():
 def main():
     args = parse_args()
     fcst_workflow(input_path=args.input_path, valid_yaml=args.valid_yaml,
-                  fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start)
+                  fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start,
+                  cycle_interval=args.cycle_interval, num_intervals=args.num_intervals)
 
 
 if __name__ == "__main__":
