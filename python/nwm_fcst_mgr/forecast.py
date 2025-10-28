@@ -19,6 +19,7 @@ from mswm.manager import build_fcst
 
 # setup the logger
 logger = logging.getLogger(__name__)
+log_level_set()
 
 
 def run_fcst(valid_yaml: str, real_path: str):
@@ -222,7 +223,7 @@ def fcst_workflow(input_path, valid_yaml, fcst_run_name, use_cold_start=False):
     run_fcst(valid_yaml, fcst_real_path)
     logger.info("Forecast ngen run completed")
 
-def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num_intervals, use_cold_start=False, use_int_ana=False):
+def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num_iterations, use_cold_start=False, use_int_ana=False):
     """
     Run hindcast workflow with optional cold start and intermediate ana runs
     Accepts cycle interval and number of intervals for repeated hindcasts
@@ -239,10 +240,13 @@ def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num
         
         # Run cold start
         run_fcst(valid_yaml, cold_start_real_path)
-        logger.info("Cold start ngen run completed")
 
     # Generate hindcast interval times in hours
-    hind_interval = list(range(0, num_intervals, cycle_interval))
+    hind_interval = list(range(0, num_iterations * cycle_interval, cycle_interval))
+
+    print(f"num_iterations: {num_iterations}")
+    print(f"cycle_interval: {cycle_interval}")
+    print(f"hind_interval: {hind_interval}")
 
     # Generate msw-mgr inputs for intermediate AnA run
     # Runs from cycle_dt to the start of the last hindcasting cycle
@@ -250,15 +254,18 @@ def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num
 
         # Create intermediate ana input files
         int_ana_real_path = build_fcst(input_path=input_path, valid_yaml=valid_yaml,
-                                       fcst_run_name=hind_run_name, use_int_ana=True, hind_cycle=hind_interval[-1])
-        logger.info(f"Intermediate AnA run {hind_cycle} realization file written to: {int_ana_real_path}")
+                                       fcst_run_name=fcst_run_name, use_int_ana=True, hind_cycle=hind_interval[-1])
+        logger.info(f"Intermediate AnA run realization file written to: {int_ana_real_path}")
         
         # Run intermediate ana to generate hindcasting model states
         run_fcst(valid_yaml, int_ana_real_path)
-        logger.info(f"Intermediate AnA run {hind_cycle} ngen run completed")
+
+    logger.info(f"Generating hindcast runs at intervals: {hind_interval}")
 
     # Loop through hindcast intervals
     for hind_cycle in hind_interval:
+
+        logger.info(f"Initializing hindcast run at interval: +{hind_cycle} hours")
 
         # Format run name for hindcast cycle
         hind_run_name = fcst_run_name + '_' + str(hind_cycle)
@@ -270,7 +277,6 @@ def hindcast_workflow(input_path, valid_yaml, fcst_run_name, cycle_interval, num
         
         # Run hindcasting period
         run_fcst(valid_yaml, hind_real_path)
-        logger.info(f"Hindcast run {hind_cycle} ngen run completed")
 
 
 def parse_args():
@@ -292,16 +298,13 @@ def parse_args():
     # Subcommand: hindcast_workflow
     hindcast_workflow_sub = subparser.add_parser("hindcast_workflow", parents=[parent_parser], help="Run forecast workflow")
     hindcast_workflow_sub.add_argument("cycle_interval", type=int, help="Cycle interval (in hours) between hindcast runs")
-    hindcast_workflow_sub.add_argument("num_intervals", type=int, help="Number of hindcast cycles to perform")
+    hindcast_workflow_sub.add_argument("num_iterations", type=int, help="Number of hindcast cycles to perform")
     hindcast_workflow_sub.add_argument("--use_int_ana", action="store_true", help="Enable intermediate AnA flag when passed")
 
     return parser.parse_args()
 
 
 def main():
-
-    # Initialize logging explicitly for CLI entrypoint
-    log_level_set()
 
     # Retrieve CLI args
     args = parse_args()
@@ -313,11 +316,11 @@ def main():
     if args.command == "hindcast_workflow":
         hindcast_workflow(input_path=args.input_path, valid_yaml=args.valid_yaml,
                           fcst_run_name=args.fcst_run_name, use_cold_start=args.use_cold_start,
-                          cycle_interval=args.cycle_interval, num_intervals=args.num_intervals, use_int_ana=args.use_int_ana)
+                          cycle_interval=args.cycle_interval, num_iterations=args.num_iterations, use_int_ana=args.use_int_ana)
     else:
         raise ValueError(f"Unexpected command: {args.command}. Use either 'fcst_workflow' or 'hindcast_workflow'.")
 
 
 if __name__ == "__main__":
-    print_git_info_all()
+    # print_git_info_all()
     main()
