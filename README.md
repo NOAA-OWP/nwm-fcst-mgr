@@ -7,7 +7,7 @@ A program to execute ngen cold start and forecast runs provided a configuration 
 
 ### Clone nwm-fcst-mgr
 
-git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-fcst-mgr.git
+git clone -b development --recurse-submodules https://github.com/NOAA-OWP/nwm-fcst-mgr.git
 
 ### Build the environment
 

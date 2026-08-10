@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 ARG  NGEN_IMAGE_TAG=latest
-FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
+FROM ghcr.io/noaa-owp/ngen:${NGEN_IMAGE_TAG}
 
 # Uncomment when building ngen locally or if ngen-int image is available locally
 # modify to use image tag for local ngen image if needed
